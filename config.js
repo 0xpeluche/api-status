@@ -60,6 +60,7 @@ export const config = {
     getCoinsApi(),
     getYieldApi(),
     getRpcAggWorkerEndpoints(),
+    getLlamaRpc(),
     getProApi(),
     getJenApi(),
   ].filter(i => !!i && i.endpoints.length), // Filter out empty sites
@@ -654,6 +655,89 @@ function getRpcAggWorkerEndpoints() {
       .concat(starknetChainConfigs)
       .concat(suiChainConfigs)
       .concat(aptosChainConfigs),
+  }
+}
+
+async function fetchBlockNumber(rpcUrl) {
+  try {
+    const res = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_blockNumber',
+        params: [],
+      }),
+    })
+    const json = await res.json()
+    const hex = json?.result?.number || json?.result
+    return typeof hex === 'string' ? parseInt(hex, 16) : null
+  } catch (e) {
+    console.error(`Failed fetching from ${rpcUrl}:`, e.message)
+    return null
+  }
+}
+
+function getLlamaRpc() {
+  if (!env.llamaRpcKey) return null
+
+  const referenceUrls = {
+    ethereum: [
+      'https://eth.drpc.org',
+      'https://1rpc.io/eth',
+    ],
+    base: [
+      'https://mainnet.base.org',
+      'https://base.drpc.org',
+    ],
+  }
+
+  const tolerance = 10
+
+  const getEndpoint = (id, url, chain) => ({
+    id,
+    name: id,
+    url: `${url}?apikey=${env.llamaRpcKey}`,
+    request: {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_getBlockByNumber',
+        params: ['latest', false],
+      }),
+    },
+    link: false,
+    customCheck: async ({ jsonContent }) => {
+      const blockHex = jsonContent?.result?.number || jsonContent?.result
+      if (typeof blockHex !== 'string') return false
+      const num = parseInt(blockHex, 16)
+
+      const urls = referenceUrls[chain] || []
+      const refs = await Promise.all(urls.map(fetchBlockNumber))
+      const validRefs = refs.filter(n => Number.isFinite(n))
+
+      if (validRefs.length === 0) {
+        console.warn(`[${id}] No valid reference RPCs responded`)
+        return Number.isFinite(num) && num > 0
+      }
+
+      const ok = validRefs.some(ref => Math.abs(ref - num) <= tolerance)
+      if (!ok) console.warn(`[${id}] OUT OF SYNC: ${num}, refs=${validRefs.join(', ')}`)
+      return ok
+    },
+  })
+
+  return {
+    id: 'llama-rpcs',
+    name: 'Llama RPCs',
+    endpoints: [
+      getEndpoint('ethereum-(old)', 'https://ethereum.nodes.llama.fi/', 'ethereum'),
+      getEndpoint('ethereum-reth-(new)', 'https://ethereum-reth.llama.rip/', 'ethereum'),
+      getEndpoint('base', 'https://base.llama.rip/', 'base'),
+    ],
   }
 }
 
