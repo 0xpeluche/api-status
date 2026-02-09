@@ -628,7 +628,7 @@ function getRpcAggWorkerEndpoints() {
   }
 
   // supported chains on defillama swap
-  let evmChains = ['ethereum', 'arbitrum', 'optimism', 'base', 'polygon', 'bsc', 'avax', 'fantom', 'sonic', 'era', 'polygon_zkevm', 'linea', 'xdai', 'klaytn', 'celo', 'scroll', 'aurora', 'unichain']
+  let evmChains = ['ethereum', 'arbitrum', 'optimism', 'base', 'polygon', 'bsc', 'avax', 'fantom', 'sonic', 'era', 'polygon_zkevm', 'linea', 'xdai', 'klaytn', 'celo', 'scroll', 'aurora', 'unichain', 'plasma', 'monad', 'hyperliquid', 'berachain', 'wc', 'megaeth', 'ink']
   const problembaticChainsSet = new Set(['fantom', 'aurora', 'polygon_zkevm'])
   evmChains = evmChains.filter(chain => !problembaticChainsSet.has(chain))
 
