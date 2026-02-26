@@ -61,7 +61,7 @@ export const config = {
     getDimensionsApi(),
     getStablecoinApi(),
     getTvlApi(),
-    getYieldApi(),
+    // getYieldApi(),
     getRpcAggWorkerEndpoints(),
     getLlamaRpc(),
     getProApi(),
